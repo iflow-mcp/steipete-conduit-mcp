@@ -1,4 +1,10 @@
-import sharp from 'sharp';
+let sharp: any;
+try {
+  sharp = require('sharp');
+} catch (e) {
+  sharp = null;
+}
+
 import { conduitConfig, logger } from '@/internal';
 
 const operationLogger = logger.child({ component: 'imageProcessor' });
@@ -26,6 +32,16 @@ export async function compressImageIfNecessary(
 ): Promise<CompressionResult> {
   const { imageCompressionThresholdBytes, imageCompressionQuality } = conduitConfig;
   const originalSizeBytes = originalBuffer.length;
+
+  if (!sharp) {
+    operationLogger.debug('Sharp module not available, skipping compression.');
+    return {
+      buffer: originalBuffer,
+      original_size_bytes: originalSizeBytes,
+      compression_applied: false,
+      compression_error_note: 'Sharp module not installed',
+    };
+  }
 
   if (originalSizeBytes <= imageCompressionThresholdBytes) {
     operationLogger.debug(
